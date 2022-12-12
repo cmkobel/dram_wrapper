@@ -1,0 +1,48 @@
+# This profile can be used with a snakemake workflow. Just put this config.yaml-file in a directory called whatever/ and call your snakemake worflow with 
+# snakemake --profile whatever/
+
+# ---- Front end stuff ----
+local-cores: 16 # front end / head node cores. Most often computing the DAG will be limited by disk-IO anyway.
+
+
+# ---- Back end stuff ----
+cores: 2048 # cluster cores # Fair play.
+jobs: 1000 # max parallel jobs # In the event of chaotic recursive spawning of random jobs.
+keep-going: true 
+#rerun-incomplete: true
+latency-wait: 120
+keep-incomplete: false # Set this to true when you develop/debug workflows.
+
+show-failed-logs: true # This one requires additional configuration beyond the scope of this configuration file.
+jobname: "ac2_{name}_{jobid}.sh" # Super helpful because it shows the job in qstat
+
+
+# ---- Conda/Mamba ----
+use-conda: true
+conda-frontend: 'mamba' # Make sure that you install mamba in the environment where you're calling snakemake. Muuuuch faster than conda.
+#conda-prefix: "conda_base/" # Much better to use the $SNAKEMAKE_CONDA_PREFIX instead, as all workflows can then use the same envs.
+
+
+# ---- QUT CMR Lyra specifics ----
+
+cluster:
+  mkdir -p logs/old/ && 
+  qsub 
+    -V 
+    -A kobel 
+    -q microbiome 
+    -N {name}-{rule}
+    -e logs/{jobid}-{rule}.err.log 
+    -o logs/{jobid}-{rule}.out.log
+    -l select=1:ncpus={threads}:mem={resources.mem_mb}mb,walltime={resources.runtime} 
+ 
+cluster-cancel: "qdel"
+
+default-resources:
+  - mem_mb=1024
+  - runtime='6:00:00'
+  #- tmpdir='$SCRATCH' # Not always necessary.
+  #- disk_mb=1024 # Not always necessary.
+  #- partition=normal # Not always necessary.
+  
+  
