@@ -16,17 +16,18 @@ genomes = ["B13_272687.fasta", "B18_293302.fasta", "B19_876542.fasta", "B20_2583
 
 rule all:
 	input:
-		expand(["output/{batch}/annotation/done.flag", "output/{batch}/distill/done.flag"], batch = batch)
+		expand(["output/{batch}/annotation/annotations.tsv", "output/{batch}/distill/product.tsv"], batch = batch)
 
 
 rule dram_annotate:
 	input: expand("{genome_dir}/{genomes}", genome_dir = genome_dir, genomes = genomes)
 	output: 
-		flag = touch("output/{batch}/annotation/done.flag"),
-		dir = directory("output/{batch}/annotation")
+		#flag = touch("output/{batch}/annotation/done.flag"),
+		annotations = "output/{batch}/annotation/annotations.tsv",
+		dir = directory("output/{batch}/annotation"),
 	benchmark: "output/{batch}/benchmarks/benchmark.dram_annotate.tsv"
 	resources:
-		mem_mb = 128000
+		mem_mb = 128000,
 	#conda: "conda_definitions/mashtree.yaml"
 	shell: """
 
@@ -49,20 +50,26 @@ rule dram_annotate:
 
 rule distill:
 	input:
-		flag = touch("output/{batch}/annotation/done.flag"),
+		#flag = touch("output/{batch}/annotation/done.flag"),
+		annotations = "output/{batch}/annotation/annotations.tsv"
 	output:
-		flag = touch("output/{batch}/distill/done.flag"),
+		#flag = touch("output/{batch}/distill/done.flag"),
+		product = "output/{batch}/distill/product.tsv",
 	params:
-		annotation_dir = f"output/{batch}/annotation"
+		annotation_dir = f"output/{batch}/annotation",
+		distillation_dir = f"output/{batch}/distillation",
+		
 	benchmark: "output/{batch}/benchmarks/benchmark.distill.tsv"
 	shell: """
 
 		{activate_arturos_dram_environment}
 
+		DRAM.py distill --help > ~/help.dram.distill.txt
+
 		DRAM.py distill \
 			-i {params.annotation_dir}/annotations.tsv \
 			--trna_path {params.annotation_dir}/trnas.tsv \
 			--rrna_path {params.annotation_dir}/rrnas.tsv \
-			-o distill 
+			-o {params.distillation_dir} 
 
 	"""
